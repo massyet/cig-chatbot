@@ -1,0 +1,40 @@
+name: Messaggi programmati Guybrush
+
+on:
+  schedule:
+    # Gli orari del cron sono in UTC. Per ogni slot di Roma copro
+    # sia ora legale (CEST = UTC+2) sia ora solare (CET = UTC+1).
+    # Lo script poi controlla l'ora reale di Roma e manda una sola volta.
+
+    # 08:00 Roma  ->  06:00 UTC (estate) / 07:00 UTC (inverno)
+    - cron: "0 6 * * *"
+    - cron: "0 7 * * *"
+    # 13:00 Roma  ->  11:00 UTC (estate) / 12:00 UTC (inverno)
+    - cron: "0 11 * * *"
+    - cron: "0 12 * * *"
+    # 22:30 Roma  ->  20:30 UTC (estate) / 21:30 UTC (inverno)
+    - cron: "30 20 * * *"
+    - cron: "30 21 * * *"
+
+  workflow_dispatch: {}   # permette anche l'avvio manuale per testare
+
+jobs:
+  invia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa dipendenze
+        run: pip install requests
+
+      - name: Invia messaggio
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python scheduled_messages.py
