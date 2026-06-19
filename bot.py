@@ -1,5 +1,7 @@
 import os
 import logging
+import asyncio
+import treni_command
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -153,6 +155,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         reply_markup=main_keyboard(),
     )
 
+async def treni_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Mostra i prossimi treni regionali (orario, binario, ritardo) sulle tratte."""
+    await context.bot.send_chat_action(update.effective_chat.id, "typing")
+    # La chiamata a ViaggiaTreno e' bloccante: la eseguo in un thread separato
+    # per non bloccare il loop del bot mentre attende la risposta.
+    testo = await asyncio.to_thread(treni_command.tabellone)
+    await update.message.reply_text(
+        testo,
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+    )
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -193,6 +207,7 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help",  help_command))
+    app.add_handler(CommandHandler("treni", treni_handler))
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
